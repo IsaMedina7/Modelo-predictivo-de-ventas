@@ -1,0 +1,15 @@
+
+# Archivos de caché de Python
+
+__pycache__/
+
+*.pyc
+
+# Modelos pesados
+
+*.pkl
+
+# Configuraciones locales
+
+.python-version
+
