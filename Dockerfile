@@ -29,17 +29,19 @@ COPY . .
 
 
 
-# 1. Declaramos que Render nos pasará el ID como un argumento de construcción
+# Recibimos la variable de entorno
 
 ARG DRIVE_FILE_ID
 
 
 
-# 2. Usamos la variable ${DRIVE_FILE_ID} en el comando wget
+# Descarga automática del modelo
 
 RUN wget --no-check-certificate "https://docs.google.com/uc?export=download&id=${DRIVE_FILE_ID}" -O modelo_demanda.pkl
 
 
+
+# Le damos permisos al script
 
 RUN chmod +x start.sh
 
@@ -51,5 +53,7 @@ EXPOSE 8501
 
 
 
-CMD ["./start.sh"]
+# LA SOLUCIÓN: Forzamos a bash a ejecutar el archivo
+
+CMD ["bash", "start.sh"]
 
