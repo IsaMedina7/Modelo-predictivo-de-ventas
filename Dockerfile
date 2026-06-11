@@ -13,8 +13,6 @@ RUN apt-get update && apt-get install -y \
 
     git \
 
-    wget \
-
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -25,23 +23,25 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 
+# 1. Instalamos la herramienta especial para Google Drive
+
+RUN pip install gdown
+
+
+
 COPY . .
 
 
-
-# Recibimos la variable de entorno
 
 ARG DRIVE_FILE_ID
 
 
 
-# Descarga automática del modelo
+# 2. Usamos gdown para saltar la advertencia de virus y descargar el modelo real
 
-RUN wget --no-check-certificate "https://docs.google.com/uc?export=download&id=${DRIVE_FILE_ID}" -O modelo_demanda.pkl
+RUN gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O modelo_demanda.pkl
 
 
-
-# Le damos permisos al script
 
 RUN chmod +x start.sh
 
@@ -52,8 +52,6 @@ EXPOSE 8000
 EXPOSE 8501
 
 
-
-# LA SOLUCIÓN: Forzamos a bash a ejecutar el archivo
 
 CMD ["bash", "start.sh"]
 
