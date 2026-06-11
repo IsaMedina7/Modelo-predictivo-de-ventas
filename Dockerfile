@@ -23,23 +23,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 
-# 1. Instalamos la herramienta especial para Google Drive
+# Instalamos gdown
 
 RUN pip install gdown
 
 
 
 COPY . .
-
-
-
-ARG DRIVE_FILE_ID
-
-
-
-# 2. Usamos gdown para saltar la advertencia de virus y descargar el modelo real
-
-RUN gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O modelo_demanda.pkl
 
 
 
