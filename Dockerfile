@@ -29,9 +29,15 @@ COPY . .
 
 
 
-# Descarga automática del modelo desde Google Drive
+# 1. Declaramos que Render nos pasará el ID como un argumento de construcción
 
-RUN wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=TU_ID_DE_GOOGLE_DRIVE_AQUI' -O modelo_demanda.pkl
+ARG DRIVE_FILE_ID
+
+
+
+# 2. Usamos la variable ${DRIVE_FILE_ID} en el comando wget
+
+RUN wget --no-check-certificate "https://docs.google.com/uc?export=download&id=${DRIVE_FILE_ID}" -O modelo_demanda.pkl
 
 
 
