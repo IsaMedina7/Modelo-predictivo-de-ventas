@@ -3,7 +3,7 @@
 
 
 
-# 1. Filtro inteligente: Si pegaste la URL completa, el script extrae solo el ID automáticamente
+# 1. Filtro inteligente para limpiar la URL si es necesario
 
 CLEAN_ID="$DRIVE_FILE_ID"
 
@@ -17,17 +17,19 @@ fi
 
 echo "Iniciando descarga segura desde Google Drive..."
 
-# 2. Descargar el archivo usando el ID limpio
-
-gdown --id "$CLEAN_ID" -O modelo_demanda.pkl
 
 
+# 2. La solución: Pasamos el enlace directo en lugar de usar la bandera --id
 
-# 3. Alerta de diagnóstico (Saber si falló por culpa de los permisos de Drive)
+gdown "https://drive.google.com/uc?id=${CLEAN_ID}" -O modelo_demanda.pkl
+
+
+
+# 3. Alerta de diagnóstico
 
 if [ ! -f "modelo_demanda.pkl" ]; then
 
-    echo "❌ ALERTA CRÍTICA: El archivo no se pudo descargar. Verifica que el enlace no esté 'Restringido' en Google Drive."
+    echo "❌ ALERTA CRÍTICA: El archivo no se pudo descargar."
 
 else
 
