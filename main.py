@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 import sqlite3
 import os
+import gdown  # ¡Importante para descargar de Drive!
 from datetime import timedelta
 import numpy as np
 
@@ -13,19 +14,32 @@ app = FastAPI(title="Core de Retail con DB Real - Modelo Robusto")
 modelo_ia = None
 columnas_modelo = None
 
-print("⏳ Cargando el PIPELINE ROBUSTO de Scikit-Learn y variables...")
+print("⏳ Verificando archivos del modelo...")
+
+# ID del archivo en Google Drive (El del modelo ROBUSTO)
+# Usa os.getenv para que Render le pase el ID, o usa uno por defecto
+DRIVE_FILE_ID = os.getenv("DRIVE_FILE_ID", "14NVsKTgFKLQJdlEOF1VxKTw9Drg1WOjs")
+MODELO_PATH = "modelo_demanda_robusto.pkl"
+FEATURES_PATH = "features_modelo_robusto.pkl"
 
 try:
-    if os.path.exists("modelo_demanda_robusto.pkl") and os.path.exists(
-        "features_modelo_robusto.pkl"
-    ):
-        # Cargar el modelo pesado
-        modelo_ia = joblib.load("modelo_demanda_robusto.pkl")
-        # Cargar la lista exacta de columnas que exige el modelo
-        columnas_modelo = joblib.load("features_modelo_robusto.pkl")
+    # Si el modelo pesado no existe (ej. en Render), lo descargamos de Drive
+    if not os.path.exists(MODELO_PATH):
+        print(f"☁️ Modelo no encontrado localmente. Descargando desde Google Drive...")
+        url = f"https://drive.google.com/uc?id={DRIVE_FILE_ID}"
+        gdown.download(url, MODELO_PATH, quiet=False)
+        print("✅ Descarga completada.")
+
+    # Ahora sí, cargamos ambos archivos
+    if os.path.exists(MODELO_PATH) and os.path.exists(FEATURES_PATH):
+        print("⏳ Cargando el PIPELINE en memoria...")
+        modelo_ia = joblib.load(MODELO_PATH)
+        columnas_modelo = joblib.load(FEATURES_PATH)
         print("✅ ¡Pipeline ROBUSTO y variables cargados con éxito!")
     else:
-        print("❌ ERROR DE INICIO: Faltan los archivos .pkl del modelo robusto.")
+        print(
+            f"❌ ERROR: Aún faltan archivos. Asegúrate de que {FEATURES_PATH} esté subido a GitHub."
+        )
 
 except Exception as e:
     print(f"❌ ERROR CRÍTICO AL CARGAR LOS ARCHIVOS PKL: {e}")
@@ -147,6 +161,9 @@ def vender_inventario(item: ItemInventario):
 # ==========================================
 @app.post("/api/predict/demand")
 def predecir_demanda(consulta: ConsultaDemanda):
+    # --- AGREGA ESTO PARA DEPURAR ---
+    print(f"Directorio de trabajo actual: {os.getcwd()}")
+    print(f"¿Existe el modelo? {os.path.exists('modelo_demanda_robusto.pkl')}")
     if modelo_ia is None or columnas_modelo is None:
         raise HTTPException(
             status_code=500,
@@ -193,7 +210,7 @@ def predecir_demanda(consulta: ConsultaDemanda):
             valores_fila = {}
 
             for col in columnas_modelo:
-                # -- CATEGÓRICAS --
+                # -- CATEGÓRICAS (Obligatorio que sean TEXTO / STR) --
                 if col == "family":
                     valores_fila[col] = str(consulta.family.upper())
                 elif col == "city":
@@ -203,11 +220,13 @@ def predecir_demanda(consulta: ConsultaDemanda):
                 elif col == "store_type":
                     valores_fila[col] = "A"
                 elif col == "cluster":
-                    valores_fila[col] = 1
-
-                # -- FECHAS AVANZADAS --
+                    valores_fila[col] = "1"  # <-- ¡Cambiado a texto!
                 elif col == "store_nbr":
-                    valores_fila[col] = float(consulta.store_nbr)
+                    valores_fila[col] = str(
+                        consulta.store_nbr
+                    )  # <-- ¡Cambiado a texto!
+
+                # -- FECHAS AVANZADAS (Obligatorio que sean NÚMEROS / FLOAT) --
                 elif col == "year":
                     valores_fila[col] = float(fecha_actual.year)
                 elif col == "month":
@@ -231,11 +250,11 @@ def predecir_demanda(consulta: ConsultaDemanda):
                 elif "holiday" in col:
                     valores_fila[col] = 0.0
 
-                # -- LAGS Y MÉTRICAS DE NEGOCIO (Usamos el promedio histórico como base segura) --
+                # -- LAGS Y MÉTRICAS DE NEGOCIO --
                 elif "lag" in col or "rolling_mean" in col:
                     valores_fila[col] = float(promedio_ventas_recientes)
 
-                # -- SALVAVIDAS (Por si hay alguna columna extra) --
+                # -- SALVAVIDAS --
                 else:
                     valores_fila[col] = 0.0
 
