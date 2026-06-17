@@ -161,14 +161,26 @@ def vender_inventario(item: ItemInventario):
 # ==========================================
 @app.post("/api/predict/demand")
 def predecir_demanda(consulta: ConsultaDemanda):
-    # --- AGREGA ESTO PARA DEPURAR ---
-    print(f"Directorio de trabajo actual: {os.getcwd()}")
-    print(f"¿Existe el modelo? {os.path.exists('modelo_demanda_robusto.pkl')}")
+    global modelo_ia, columnas_modelo  # Le decimos a Python que use las variables globales
+
+    # --- FALLBACK DE EMERGENCIA (La solución al problema de Render) ---
+    # Si este 'worker' específico tiene la memoria vacía, recarga el archivo
     if modelo_ia is None or columnas_modelo is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Fallo en el Backend: Pipeline o variables no cargados.",
-        )
+        print("⚠️ Memoria RAM vacía en este Worker. Recargando modelo en caliente...")
+        try:
+            if os.path.exists("modelo_demanda_robusto.pkl"):
+                modelo_ia = joblib.load("modelo_demanda_robusto.pkl")
+                columnas_modelo = joblib.load("features_modelo_robusto.pkl")
+                print("✅ Modelo recargado con éxito para esta petición.")
+            else:
+                raise Exception(
+                    "El archivo .pkl no existe en el disco duro del servidor."
+                )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Fallo en el Backend: No se pudo recargar el modelo. Error: {e}",
+            )
 
     try:
         conn = conectar_db()
